@@ -78,5 +78,5 @@ def generate_move_group_launch(moveit_config):
     return ld
 
 def generate_launch_description():
-    moveit_config = MoveItConfigsBuilder("firefighter", package_name="mycobot_600_moveit_config").to_moveit_configs()
+    moveit_config = MoveItConfigsBuilder("mycobot_pro_with_gripper", package_name="mycobot_600_moveit_config").to_moveit_configs()
     return generate_move_group_launch(moveit_config)
