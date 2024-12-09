@@ -1,0 +1,9 @@
+<library path="mycobot_control">
+  <class name="mycobot_control/RobotSystem"
+         type="mycobot_control::RobotSystem"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+      Robot hardware plugin for mycobot
+    </description>
+  </class>
+</library>
