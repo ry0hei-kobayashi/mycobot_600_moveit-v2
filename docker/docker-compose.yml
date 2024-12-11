@@ -1,0 +1,42 @@
+version: '3'
+services:
+  mycobot_600_moveit:
+    image: mycobot_600_moveit:latest 
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    security_opt:
+     - apparmor:unconfined
+    volumes:
+     - /tmp/.X11-unix:/tmp/.X11-unix
+     - ../config:/colcon_ws/src/mycobot_600_moveit/config
+     - ../launch:/colcon_ws/src/mycobot_600_moveit/launch
+     - ../urdf:/colcon_ws/src/mycobot_600_moveit/urdf
+     - ../scripts:/colcon_ws/src/mycobot_600_moveit/scripts
+     - ../CMakeLists.txt:/colcon_ws/src/mycobot_600_moveit/CMakeLists.txt
+     - ../package.xml:/colcon_ws/src/mycobot_600_moveit/package.xml
+     - ../setup.py:/colcon_ws/src/mycobot_600_moveit/setup.py
+     - ../.setup_assistant:/colcon_ws/src/mycobot_600_moveit/.setup_assistant
+    environment:
+      DISPLAY: $DISPLAY
+      XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR
+      #ROS_MASTER_URI: https://192.168.0.222:11311
+      #ROS_IP: 192.168.0.222
+      ROS_MASTER_URI: https://10.65.5.126:11311
+      ROS_IP: 10.65.5.126
+      PYTHONPATH: ./
+    working_dir: /colcon_ws
+    network_mode: host
+    tty: true
+    #deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: 1
+    #          capabilities: [gpu]
+   
+    #command: nvidia-smi -l
+    #command: ros2 launch mycobot_600 test.launch.py
+
+    

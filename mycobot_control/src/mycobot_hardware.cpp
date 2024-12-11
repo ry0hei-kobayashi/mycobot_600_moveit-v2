@@ -3,9 +3,9 @@
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
+//     
 //     http://www.apache.org/licenses/LICENSE-2.0
-//
+//  
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -13,118 +13,191 @@
 // limitations under the License.
 
 #include "mycobot_control/mycobot_hardware.hpp"
-#include <string>
-#include <vector>
-#include <iostream>
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h>
-#include <iostream>
-#include <string>
-#include <cstring>
-#include <sstream>
-#include <vector>
 #include <cmath>
+#include <cstring>
 #include <iomanip>
-
-#include <vector>
-#include <cmath>  // M_PI
-#include <iostream>
-
+#include <netinet/in.h>
 #include <regex>
 #include <rclcpp/rclcpp.hpp>
+#include <sstream>
+#include <string>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <vector>
 
-std::vector<double> rad2deg(const std::vector<double>& radians) {
-    std::vector<double> degrees;
-    degrees.reserve(radians.size()); 
-
-    for (auto r : radians) {
-        degrees.push_back(r * 180.0 / M_PI);
-    }
-
-    return degrees;
-}
-
-std::vector<double> deg2rad(const std::vector<double>& degrees) {
-    std::vector<double> radians;
-    radians.reserve(degrees.size()); 
-
-    for (auto d : degrees) {
-        radians.push_back(d * M_PI / 180.0);
-    }
-
-    return radians;
-}
-
-std::string createSetAnglesCommand(const std::vector<double>& angles, int speed) {
-    std::ostringstream command;
-    command << "set_angles(";
-    for (size_t i = 0; i < angles.size(); ++i) {
-        command << std::fixed << std::setprecision(3) << angles[i];
-        if (i < angles.size() - 1) {
-            command << ",";
-        }
-    }
-    command << "," << std::fixed << std::setprecision(3) << speed << ")\n";
-    return command.str();
-}
-
-std::string createSetSpeedCommand(int percentage) {
-    std::ostringstream command;
-    command << "set_speed(" << percentage << ")\n";
-    return command.str();
-}
-
-namespace mycobot_control 
+namespace
 {
-CallbackReturn RobotSystem::on_init(const hardware_interface::HardwareInfo & info)
+constexpr double DEG2RAD = M_PI / 180.0;
+constexpr double RAD2DEG = 180.0 / M_PI;
+constexpr int JOINT_COUNT = 6;
+constexpr int SPEED_PERCENT = 100;
+constexpr int SPEED_VALUE = 1999; 
+
+// Helper functions
+inline std::vector<double> rad2deg(const std::vector<double> &radians)
+{
+  std::vector<double> degrees;
+  degrees.reserve(radians.size());
+  for (auto r : radians)
+  {
+    degrees.push_back(r * RAD2DEG);
+  }
+  return degrees;
+}
+
+inline std::vector<double> deg2rad(const std::vector<double> &degrees)
+{
+  std::vector<double> radians;
+  radians.reserve(degrees.size());
+  for (auto d : degrees)
+  {
+    radians.push_back(d * DEG2RAD);
+  }
+  return radians;
+}
+
+inline std::string createSetAnglesCommand(const std::vector<double> &angles, int speed)
+{
+  std::ostringstream command;
+  command << "set_angles(";
+  for (size_t i = 0; i < angles.size(); ++i)
+  {
+    command << std::fixed << std::setprecision(3) << angles[i];
+    if (i < angles.size() - 1)
+    {
+      command << ",";
+    }
+  }
+  command << "," << std::fixed << std::setprecision(3) << speed << ")\n";
+  return command.str();
+}
+
+inline std::string createSetSpeedCommand(int percentage)
+{
+  std::ostringstream command;
+  command << "set_speed(" << percentage << ")\n";
+  return command.str();
+}
+
+inline std::vector<double> parseAnglesFromResponse(const std::string &response)
+{
+  std::regex re(R"(\[([^\]]+)\])");
+  std::smatch match;
+  std::vector<double> deg_angles;
+
+  if (std::regex_search(response, match, re))
+  {
+    std::string numbers = match[1].str();
+    std::regex recomma(",");
+    std::sregex_token_iterator it(numbers.begin(), numbers.end(), recomma, -1), end;
+    for (; it != end; ++it)
+    {
+      deg_angles.push_back(std::stod(it->str()));
+    }
+  }
+
+  return deg_angles;
+}
+
+inline bool sendCommand(int sockfd, const std::string &command, std::string &out_response)
+{
+  if (send(sockfd, command.c_str(), command.size(), 0) < 0)
+  {
+    return false;
+  }
+
+  // Receive response
+  char recvData[1024];
+  memset(recvData, 0, sizeof(recvData));
+  int recvLen = recv(sockfd, recvData, sizeof(recvData) - 1, 0);
+  if (recvLen > 0)
+  {
+    recvData[recvLen] = '\0';
+    out_response = recvData;
+  }
+  else
+  {
+    out_response.clear();
+  }
+
+  return true;
+}
+
+}  // namespace
+
+namespace mycobot_control
+{
+
+CallbackReturn RobotSystem::on_init(const hardware_interface::HardwareInfo &info)
 {
   if (hardware_interface::SystemInterface::on_init(info) != CallbackReturn::SUCCESS)
   {
     return CallbackReturn::ERROR;
   }
 
-  //socket connection
+  // Create socket
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0)
+  {
+    RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Failed to create socket.");
+    return CallbackReturn::ERROR;
+  }
+
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
   addr.sin_addr.s_addr = inet_addr(addrNum.c_str());
-  connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
 
-
-  // robot has 6 joints and 2 interfaces
-  joint_position_.assign(6, 0);
-  joint_velocities_.assign(6, 0);
-  joint_position_command_.assign(6, 0);
-  joint_velocities_command_.assign(6, 0);
-
-  for (const auto & joint : info_.joints)
+  if (connect(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_in)) < 0)
   {
-    for (const auto & interface : joint.state_interfaces)
+    RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Failed to connect to robot controller.");
+    close(sockfd);
+    return CallbackReturn::ERROR;
+  }
+
+  // Initialize joint states and commands
+  joint_position_.resize(JOINT_COUNT, 0.0);
+  joint_velocities_.resize(JOINT_COUNT, 0.0);
+  joint_position_command_.resize(JOINT_COUNT, 0.0);
+  joint_velocities_command_.resize(JOINT_COUNT, 0.0);
+
+  // Map joint interfaces
+  for (const auto &joint : info_.joints)
+  {
+    for (const auto &interface : joint.state_interfaces)
     {
       joint_interfaces[interface.name].push_back(joint.name);
     }
   }
 
+  //TODO
+  // Set initial pose (in radians)
+  std::vector<double> init_pose = {0.0, -1.57, 0.0, 0.0, -1.57, 0.0}; 
+  joint_position_ = init_pose;
+  joint_position_command_ = init_pose;
+  //
+
+  RCLCPP_INFO(rclcpp::get_logger("MyCobotHardware"), "MyCobot hardware interface initialized successfully.");
+
   return CallbackReturn::SUCCESS;
 }
+
+
 
 std::vector<hardware_interface::StateInterface> RobotSystem::export_state_interfaces()
 {
   std::vector<hardware_interface::StateInterface> state_interfaces;
+  state_interfaces.reserve(JOINT_COUNT * 2);
 
   int ind = 0;
-  for (const auto & joint_name : joint_interfaces["position"])
+  for (const auto &joint_name : joint_interfaces["position"])
   {
     state_interfaces.emplace_back(joint_name, "position", &joint_position_[ind++]);
   }
 
   ind = 0;
-  for (const auto & joint_name : joint_interfaces["velocity"])
+  for (const auto &joint_name : joint_interfaces["velocity"])
   {
     state_interfaces.emplace_back(joint_name, "velocity", &joint_velocities_[ind++]);
   }
@@ -135,15 +208,16 @@ std::vector<hardware_interface::StateInterface> RobotSystem::export_state_interf
 std::vector<hardware_interface::CommandInterface> RobotSystem::export_command_interfaces()
 {
   std::vector<hardware_interface::CommandInterface> command_interfaces;
+  command_interfaces.reserve(JOINT_COUNT * 2);
 
   int ind = 0;
-  for (const auto & joint_name : joint_interfaces["position"])
+  for (const auto &joint_name : joint_interfaces["position"])
   {
     command_interfaces.emplace_back(joint_name, "position", &joint_position_command_[ind++]);
   }
 
   ind = 0;
-  for (const auto & joint_name : joint_interfaces["velocity"])
+  for (const auto &joint_name : joint_interfaces["velocity"])
   {
     command_interfaces.emplace_back(joint_name, "velocity", &joint_velocities_command_[ind++]);
   }
@@ -151,120 +225,68 @@ std::vector<hardware_interface::CommandInterface> RobotSystem::export_command_in
   return command_interfaces;
 }
 
-return_type RobotSystem::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & period)
+
+//read
+return_type RobotSystem::read(const rclcpp::Time &, const rclcpp::Duration &)
 {
 
-  std::string angles = "get_angles()\n";
-  const char* data = angles.c_str();
-  char recvData[1024]; // 受信データ用バッファ
-  
-  send(sockfd, data, angles.size(), 0);
-  memset(recvData, 0, sizeof(recvData)); // 受信バッファの初期化
-  int recvLen = recv(sockfd, recvData, sizeof(recvData) - 1 , 0);
-  if (recvLen > 0) {
-      recvData[recvLen] = '\0'; // 文字列として終端を追加
-      std::cout << recvData << std::endl;
-  }
+  const std::string angles_cmd = "get_angles()\n";
+  std::string response;
 
-  //std2vector
-  std::regex re(R"(\[([^\]]+)\])");
-  std::smatch match;
-  std::vector<double> deg_angles;
-  
-  std::string recvStr(recvData);
-  if (std::regex_search(recvStr, match, re)) {
-      // match[1]: "1.252415,-48.058783,1.271586,-1.669922,-97.207031,-10.195312"
-      std::string numbers = match[1].str();
-  
-      // カンマで分割
-      std::regex recomma(",");
-      std::sregex_token_iterator it(numbers.begin(), numbers.end(), recomma, -1), end;
-      for (; it != end; ++it) {
-          deg_angles.push_back(std::stod(it->str()));
-      }
-  }
-
-  //deg2rad
-  std::vector<double> rad_vec = deg2rad(deg_angles);
-
-  for (auto r : rad_vec) {
-      std::cout << r << " ";
-  }
-  std::cout << std::endl;
-
-  for (size_t i=0; i<joint_position_.size(); ++i){
-      joint_position_[i] = rad_vec[i];
-  } 
-
-  for (auto & vel : joint_velocities_)
+  if (!sendCommand(sockfd, angles_cmd, response))
   {
-    vel = 0.0;
+    RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Failed to send 'get_angles' command.");
+    return return_type::ERROR;
   }
+
+  auto deg_angles = parseAnglesFromResponse(response);
+  if (deg_angles.size() != JOINT_COUNT)
+  {
+    RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Invalid angle response from robot controller.");
+    return return_type::ERROR;
+  }
+
+  auto rad_vec = deg2rad(deg_angles);
+  for (size_t i = 0; i < joint_position_.size(); ++i)
+  {
+    joint_position_[i] = rad_vec[i];
+  }
+
 
   return return_type::OK;
 }
 
+//write
 return_type RobotSystem::write(const rclcpp::Time &, const rclcpp::Duration &)
 {
 
-  //std::cout << joint_position_command_[0] << std::endl;
-  // joint_velocities_command_;
-  //rad2deg
-  std::vector<double> rad_angles = rad2deg(joint_position_command_);
 
-  //set gain
-  int gainPercentage = 100; //percentage
-  std::string gain_command = createSetSpeedCommand(gainPercentage);
+  auto rad_angles = rad2deg(joint_position_command_);
 
-  const char* gain_data = gain_command.c_str();
-  char recvDataGain[1024]; // 受信データ用バッファ
+  ////set speed
+  std::string response;
 
-  if (send(sockfd, gain_data, gain_command.size(), 0) < 0) {
-      std::cerr << "Failed to send command." << std::endl;
-      close(sockfd);
-      return return_type::ERROR;
+  const std::string gain_command = createSetSpeedCommand(SPEED_PERCENT);
+  if (!sendCommand(sockfd, gain_command, response))
+  {
+    RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Failed to send speed command.");
+    return return_type::ERROR;
   }
-
-  memset(recvDataGain, 0, sizeof(recvDataGain));
-  int recvLenGain = recv(sockfd, recvDataGain, sizeof(recvDataGain) - 1, 0);
-  if (recvLenGain > 0) {
-      recvDataGain[recvLenGain] = '\0'; // 文字列として終端
-      std::cout << "Response: " << recvDataGain << std::endl;
-  } else {
-      std::cerr << "Failed to receive response." << std::endl;
-  }
-
 
   //set angle
-  //std::vector<double> angles = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; 
-  int speed = 1999; // 速度
-
-  std::string command = createSetAnglesCommand(rad_angles, speed);
-  const char* data = command.c_str();
-  char recvData[1024]; // 受信データ用バッファ
-
-  if (send(sockfd, data, command.size(), 0) < 0) {
-      std::cerr << "Failed to send command." << std::endl;
-      close(sockfd);
-      return return_type::ERROR;
-  }
-
-  memset(recvData, 0, sizeof(recvData));
-  int recvLen = recv(sockfd, recvData, sizeof(recvData) - 1, 0);
-  if (recvLen > 0) {
-      recvData[recvLen] = '\0'; // 文字列として終端
-      std::cout << "Response: " << recvData << std::endl;
-  } else {
-      std::cerr << "Failed to receive response." << std::endl;
+  const std::string angle_command = createSetAnglesCommand(rad_angles, SPEED_VALUE);
+  if (!sendCommand(sockfd, angle_command, response))
+  {
+    RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Failed to send set_angles command.");
+    return return_type::ERROR;
   }
 
   return return_type::OK;
-
 }
 
-}  
+}  // namespace mycobot_control
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(
-  mycobot_control::RobotSystem, hardware_interface::SystemInterface)
+PLUGINLIB_EXPORT_CLASS(mycobot_control::RobotSystem, hardware_interface::SystemInterface)
+

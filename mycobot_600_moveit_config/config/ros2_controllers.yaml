@@ -1,6 +1,6 @@
 controller_manager:
   ros__parameters:
-    update_rate: 10
+    update_rate: 50
 
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
@@ -23,8 +23,10 @@ mycobot_controller:
       - position
     state_interfaces:
       - position
-    state_publish_rate: 20.0
-    action_monitor_rate: 10.0
+    state_publish_rate: 50.0
+    action_monitor_rate: 50.0
     allow_partial_joints_goal: false
+
+
 
 
