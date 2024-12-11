@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="mycobot_pro_with_gripper">
+  
+  <!-- Include Pro 600 URDF -->
+  <xacro:include filename="$(find mycobot_description)/urdf/mycobot_pro_600/mycobot_pro_600.urdf" />
+  
+  <!-- Include camera_attachment URDF -->
+  <xacro:include filename="$(find mycobot_description)/urdf/camera_attachments/camera_attachment.urdf" />
+
+  <!-- Include Adaptive Gripper URDF -->
+  <xacro:include filename="$(find mycobot_description)/urdf/pro_adaptive_gripper/mycobot_pro_adaptive_gripper.urdf" />
+
+  <joint name="flange_to_gripper" type="fixed">
+    <parent link="camera_adaptor"/>
+    <child link="gripper_base"/>
+    <origin xyz="0.06 -0.007 0" rpy="-1.57 1.57 3.14"/> 
+  </joint>
+
+  <!--extension for eef-->
+
+  <link name="end_effector_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.01" length="0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  
+  <joint name="end_effector_joint" type="fixed">
+    <parent link="camera_adaptor"/> 
+    <child link="end_effector_link"/>
+    <!--origin xyz="0.1 0.0 0.0" rpy="0 1.57 1.57"/> -->
+    <!--origin xyz="0.1 0.0 0.0" rpy="3.14 -1.57 1.57"/--> 
+    <origin xyz="0.1 0.0 0.0" rpy="-1.57 0 -1.57"/> 
+  </joint>
+  
+</robot>
+

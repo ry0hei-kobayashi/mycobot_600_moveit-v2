@@ -1,12 +1,13 @@
 moveit_setup_assistant_config:
   urdf:
     package: mycobot_description
-    relative_path: urdf/mycobot_pro_600/mycobot_pro_600.urdf
+    relative_path: urdf/hma_cobot_with_eef.urdf
   srdf:
-    relative_path: config/firefighter.srdf
+    package: mycobot_600_moveit_config
+    relative_path: config/mycobot_pro_with_gripper.srdf
   package_settings:
-    author_name: hoeg
-    author_email: hoge@hoge.com
+    author_name: ry0hei-kobayashi
+    author_email: kobayashi.ryohei621@mail.kyutech.jp
     generated_timestamp: 1733455265
   control_xacro:
     command:
