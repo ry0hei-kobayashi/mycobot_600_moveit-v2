@@ -250,6 +250,7 @@ return_type RobotSystem::read(const rclcpp::Time &, const rclcpp::Duration &)
   for (size_t i = 0; i < joint_position_.size(); ++i)
   {
     joint_position_[i] = rad_vec[i];
+    joint_velocities_[i] = 0.0;
   }
 
 
@@ -280,6 +281,8 @@ return_type RobotSystem::write(const rclcpp::Time &, const rclcpp::Duration &)
     RCLCPP_ERROR(rclcpp::get_logger("MyCobotHardware"), "Failed to send set_angles command.");
     return return_type::ERROR;
   }
+
+  rclcpp::Rate rate(0.1);
 
   return return_type::OK;
 }
