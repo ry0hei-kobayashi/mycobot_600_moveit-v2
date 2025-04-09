@@ -9,21 +9,32 @@ services:
      - apparmor:unconfined
     volumes:
      - /tmp/.X11-unix:/tmp/.X11-unix
-     - ../config:/colcon_ws/src/mycobot_600_moveit/config
-     - ../launch:/colcon_ws/src/mycobot_600_moveit/launch
-     - ../urdf:/colcon_ws/src/mycobot_600_moveit/urdf
-     - ../scripts:/colcon_ws/src/mycobot_600_moveit/scripts
-     - ../CMakeLists.txt:/colcon_ws/src/mycobot_600_moveit/CMakeLists.txt
-     - ../package.xml:/colcon_ws/src/mycobot_600_moveit/package.xml
-     - ../setup.py:/colcon_ws/src/mycobot_600_moveit/setup.py
-     - ../.setup_assistant:/colcon_ws/src/mycobot_600_moveit/.setup_assistant
+     - ../mycobot_description:/colcon_ws/src/mycobot_description
+     - ../mycobot_600_moveit_config:/colcon_ws/src/mycobot_600_moveit_config
+     - ../mycobot_control:/colcon_ws/src/mycobot_control
+     - ../mycobot_test:/colcon_ws/src/mycobot_test
+     - ../elegripper:/colcon_ws/src/elegripper
+     - ../f100_gripper_pkg:/colcon_ws/src/f100_gripper_pkg
+     - ../f100_gripper_interfaces:/colcon_ws/src/f100_gripper_interfaces
+    #  - /tmp/.X11-unix:/tmp/.X11-unix
+    #  - ../config:/colcon_ws/src/mycobot_600_moveit/config
+    #  - ../launch:/colcon_ws/src/mycobot_600_moveit/launch
+    #  - ../urdf:/colcon_ws/src/mycobot_600_moveit/urdf
+    #  - ../scripts:/colcon_ws/src/mycobot_600_moveit/scripts
+    #  - ../CMakeLists.txt:/colcon_ws/src/mycobot_600_moveit/CMakeLists.txt
+    #  - ../package.xml:/colcon_ws/src/mycobot_600_moveit/package.xml
+    #  - ../setup.py:/colcon_ws/src/mycobot_600_moveit/setup.py
+    #  - ../.setup_assistant:/colcon_ws/src/mycobot_600_moveit/.setup_assistant
+    devices:
+     - /dev/ttyACM0:/dev/ttyACM0
+
     environment:
       DISPLAY: $DISPLAY
       XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR
       #ROS_MASTER_URI: https://192.168.0.222:11311
       #ROS_IP: 192.168.0.222
-      ROS_MASTER_URI: https://10.65.5.126:11311
-      ROS_IP: 10.65.5.126
+      ROS_MASTER_URI: https://10.65.5.215:11311
+      ROS_IP: 10.65.5.215
       PYTHONPATH: ./
     working_dir: /colcon_ws
     network_mode: host

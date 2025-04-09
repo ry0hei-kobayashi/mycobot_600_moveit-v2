@@ -20,6 +20,8 @@ RUN sed -i 's@archive.ubuntu.com@ftp.jaist.ac.jp/pub/Linux@g' /etc/apt/sources.l
 RUN apt-get -y update
 RUN apt-get -y install git ssh python3-pip wget net-tools vim tmux xsel xclip curl make build-essential lsb-release libgl1-mesa-dev python3-wheel python3-pip python-is-python3
 
+RUN pip install pyserial
+
 #-----------------------------
 # Install humble pkg
 #-----------------------------
@@ -50,14 +52,14 @@ RUN apt-get install -y ros-humble-moveit \
 RUN mkdir -p /colcon_ws/src
 WORKDIR /colcon_ws/src
 
-COPY ./config /colcon_ws/src/mycobot_600_moveit/config
-COPY ./launch /colcon_ws/src/mycobot_600_moveit/launch
-COPY ./urdf /colcon_ws/src/mycobot_600_moveit/urdf
-COPY ./scripts /colcon_ws/src/mycobot_600_moveit/scripts
-COPY ./CMakeLists.txt /colcon_ws/src/mycobot_600_moveit/CMakeLists.txt
-COPY ./package.xml /colcon_ws/src/mycobot_600_moveit/package.xml
-COPY ./setup.py /colcon_ws/src/mycobot_600_moveit/setup.py
-COPY ./.setup_assistant /colcon_ws/src/mycobot_600_moveit/.setup_assistant
+# COPY ./config /colcon_ws/src/mycobot_600_moveit/config
+# COPY ./launch /colcon_ws/src/mycobot_600_moveit/launch
+# COPY ./urdf /colcon_ws/src/mycobot_600_moveit/urdf
+# COPY ./scripts /colcon_ws/src/mycobot_600_moveit/scripts
+# COPY ./CMakeLists.txt /colcon_ws/src/mycobot_600_moveit/CMakeLists.txt
+# COPY ./package.xml /colcon_ws/src/mycobot_600_moveit/package.xml
+# COPY ./setup.py /colcon_ws/src/mycobot_600_moveit/setup.py
+# COPY ./.setup_assistant /colcon_ws/src/mycobot_600_moveit/.setup_assistant
 
 RUN cd .. && . /opt/ros/humble/setup.bash && colcon build && . install/setup.bash
 RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then rosdep init; fi && rosdep update
