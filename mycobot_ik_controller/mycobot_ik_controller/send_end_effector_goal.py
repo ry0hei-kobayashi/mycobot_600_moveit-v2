@@ -21,9 +21,9 @@ class EndEffectorGoalSender(Node):
         pose.position.y = 0.0
         pose.position.z = 0.4
         pose.orientation.x = 0.0
-        pose.orientation.y = 0.0
+        pose.orientation.y = 0.8
         pose.orientation.z = 0.0
-        pose.orientation.w = 0.0
+        pose.orientation.w = 0.6
 
         goal_msg.target_pose = pose
 

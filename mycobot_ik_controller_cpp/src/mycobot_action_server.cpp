@@ -14,45 +14,6 @@
 #include <unistd.h>
 #include <sys/socket.h>  
 
-int create_and_connect_socket(const std::string &ip_address, int port)
-{
-  // ソケット作成
-  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0)
-  {
-    std::cerr << "Failed to create socket." << std::endl;
-    return -1;
-  }
-
-  // 接続先設定
-  sockaddr_in addr{};
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = inet_addr(ip_address.c_str());
-
-  // 接続
-  if (connect(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0)
-  {
-    std::cerr << "Failed to connect to " << ip_address << ":" << port << std::endl;
-    close(sockfd);
-    return -1;
-  }
-
-  return sockfd;
-}
-
-std::string createSetAnglesCommand(const std::vector<double>& angles, int speed) {
-    std::ostringstream command;
-    command << "set_angles(";
-    for (size_t i = 0; i < angles.size(); ++i) {
-      command << std::fixed << std::setprecision(3) << angles[i];
-      if (i < angles.size() - 1)
-        command << ",";
-    }
-    command << "," << speed << ")\n";
-    return command.str();
-  }
-
 class MyCobotActionServer : public rclcpp::Node
 {
 public:
@@ -137,47 +98,15 @@ private:
           joint_str << "Joint " << (i + 1) << ": " << joint_values[i] << " rad\n";
         }
 
-        // ここにmycobotを動かすプログラム
-        int sockfd = create_and_connect_socket("192.168.0.2", 5001);
-        if (sockfd < 0)
-        {
-          RCLCPP_ERROR(this->get_logger(), "Could not connect to myCobot.");
-          return;
-        }
+        // ここにmycobotを動かすため、FollowJointTrajectoryアクションを使って、joint_trajectory_controllerに目標姿勢を送信するプログラムを作成
 
-        // 角度を degree に変換
-        std::vector<double> joint_values_deg;
-        for (auto rad : joint_values)
-        {
-        joint_values_deg.push_back(rad * 180.0 / M_PI);
-        }
-
-        // コマンド生成
-        int speed = 50; // スピード指定
-        std::string command = createSetAnglesCommand(joint_values_deg, speed);
-
-        // 送信
-        send(sockfd, command.c_str(), command.length(), 0);
-        std::cout << "Sending: " << command.c_str();
-
-        // 応答取得（任意）
-        char buffer[1024] = {0};
-        int len = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
-        if (len > 0)
-        {
-        buffer[len] = '\0';
-        RCLCPP_INFO(this->get_logger(), "Response from myCobot: %s", buffer);
-        }
-
-        // ソケットクローズ
-        close(sockfd);
       
         // 成功レスポンスを返す
         result->success = true;
-        result->message = "IK succeeded. Joint values:\n" + joint_str.str();
+        result->message = "????\n";
         goal_handle->succeed(result);
       
-        RCLCPP_INFO(this->get_logger(), "IK succeeded and joint values returned.");
+        RCLCPP_INFO(this->get_logger(), "????");
     }
 };
 
