@@ -13,6 +13,12 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <sys/socket.h>  
+#include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
+#include <chrono>  // 時間リテラルに必要
+using namespace std::chrono_literals;  // 3sなどを使うため
+
 
 class MyCobotActionServer : public rclcpp::Node
 {
@@ -23,6 +29,9 @@ public:
     MyCobotActionServer() : Node("mycobot_action_server"), move_group_interface_(std::shared_ptr<rclcpp::Node>(this, [](rclcpp::Node*){}), "arm_group")
     {
     RCLCPP_INFO(this->get_logger(), "MyCobotActionServer node initialized.");
+
+    trajectory_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
+        this, "/mycobot_controller/follow_joint_trajectory");
 
     action_server_ = rclcpp_action::create_server<MoveEndEffector>(
         this,
@@ -35,6 +44,8 @@ private:
     moveit::planning_interface::MoveGroupInterface move_group_interface_;
     moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
     rclcpp_action::Server<MoveEndEffector>::SharedPtr action_server_;
+    rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_client_;
+
 
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID & uuid,
@@ -89,7 +100,16 @@ private:
       
         // 逆運動学で求められたジョイント角度を取得
         std::vector<double> joint_values;
-        move_group_interface_.getCurrentState()->copyJointGroupPositions(move_group_interface_.getName(), joint_values);
+        const auto & traj_points = plan.trajectory_.joint_trajectory.points;
+        if (!traj_points.empty()) {
+            joint_values = traj_points.back().positions;
+        } else {
+            RCLCPP_ERROR(this->get_logger(), "Trajectory has no points!");
+            result->success = false;
+            result->message = "Trajectory is empty.";
+            goal_handle->abort(result);
+            return;
+        }
       
         // ログ出力
         std::ostringstream joint_str;
@@ -99,14 +119,56 @@ private:
         }
 
         // ここにmycobotを動かすため、FollowJointTrajectoryアクションを使って、joint_trajectory_controllerに目標姿勢を送信するプログラムを作成
+        // サーバが立ち上がるまで待つ（サーバーが既に立ち上がっていたら待たないが、立ち上がっていなかったら最大3秒待つ）
+        if (!trajectory_client_->wait_for_action_server(3s)) {
+            RCLCPP_ERROR(this->get_logger(), "FollowJointTrajectory action server not available");
+            result->success = false;
+            result->message = "Action server not available.";
+            goal_handle->abort(result);
+            return;
+        }
 
+        // 送信する JointTrajectory メッセージを構築
+        trajectory_msgs::msg::JointTrajectory trajectory;
+        trajectory.joint_names = move_group_interface_.getJointNames();
+
+        for (const auto& name : trajectory.joint_names) {
+            RCLCPP_INFO(this->get_logger(), "Sending to joint: %s", name.c_str());
+        }        
+
+        trajectory_msgs::msg::JointTrajectoryPoint point;
+        point.positions = joint_values;  // IK で取得した角度
+        point.time_from_start = rclcpp::Duration::from_seconds(1.0);  // 2秒かけて動く
+
+        trajectory.points.push_back(point);
+
+        // Goal メッセージ作成
+        control_msgs::action::FollowJointTrajectory::Goal trajectory_goal;
+        trajectory_goal.trajectory = trajectory;
+
+        // 非同期で送信
+        auto send_goal_options = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SendGoalOptions();
+        send_goal_options.result_callback = [this, goal_handle, result](const rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::WrappedResult & wrapped_result) {
+            if (wrapped_result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+                RCLCPP_INFO(this->get_logger(), "Trajectory executed successfully.");
+                result->success = true;
+                result->message = "Trajectory executed successfully.";
+                goal_handle->succeed(result);
+            } else {
+                RCLCPP_ERROR(this->get_logger(), "Trajectory execution failed.");
+                result->success = false;
+                result->message = "Trajectory execution failed.";
+                goal_handle->abort(result);
+            }
+        };
+
+        trajectory_client_->async_send_goal(trajectory_goal, send_goal_options);
       
         // 成功レスポンスを返す
         result->success = true;
-        result->message = "????\n";
-        goal_handle->succeed(result);
+        result->message = "--------------\n";
       
-        RCLCPP_INFO(this->get_logger(), "????");
+        RCLCPP_INFO(this->get_logger(), "------------------");
     }
 };
 

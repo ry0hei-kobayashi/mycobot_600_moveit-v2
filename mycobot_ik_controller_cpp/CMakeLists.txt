@@ -12,6 +12,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(mycobot_action_interfaces REQUIRED)
+find_package(control_msgs REQUIRED)
 
 add_executable(mycobot_action_server src/mycobot_action_server.cpp)
 
@@ -21,6 +22,7 @@ ament_target_dependencies(mycobot_action_server
   moveit_ros_planning_interface
   geometry_msgs
   mycobot_action_interfaces
+  control_msgs
 )
 
 install(TARGETS

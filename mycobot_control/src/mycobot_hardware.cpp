@@ -282,6 +282,13 @@ return_type RobotSystem::write(const rclcpp::Time &, const rclcpp::Duration &)
     return return_type::ERROR;
   }
 
+  // ログ
+  RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "=== joint_position_command_ ===");
+  for (size_t i = 0; i < joint_position_command_.size(); ++i)
+  {
+    RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "Joint %zu: %.3f rad", i, joint_position_command_[i]);
+  }
+
   rclcpp::Rate rate(0.1);
 
   return return_type::OK;
