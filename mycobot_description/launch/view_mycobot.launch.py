@@ -5,7 +5,8 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    urdf_file_path = get_package_share_directory('mycobot_description') + '/urdf/mycobot_pro_600/mycobot_pro_600.urdf'
+    # urdf_file_path = get_package_share_directory('mycobot_description') + '/urdf/mycobot_pro_600/mycobot_pro_600.urdf'
+    urdf_file_path = get_package_share_directory('mycobot_description') + '/urdf/hma_cobot_with_eef.urdf'
 
     return LaunchDescription([
         DeclareLaunchArgument(
