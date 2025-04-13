@@ -160,49 +160,46 @@ private:
 
         // 非同期で送信
         auto send_goal_options = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SendGoalOptions();
-        
-        // feedback
-        send_goal_options.feedback_callback =
-        [this, goal_handle](typename rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::SharedPtr,
-                            const std::shared_ptr<const control_msgs::action::FollowJointTrajectory::Feedback> msg)
-        {
-          // msg->desired, msg->actual, msg->error などが格納されている
-          auto feedback_for_user = std::make_shared<MoveEndEffector::Feedback>();
-  
-          // 例として、actual.positions を文字列にまとめる
-          std::ostringstream oss;
-          oss << "Feedback from controller:\n";
-          if (!msg->actual.positions.empty()) {
-            oss << "  actual[0]: " << msg->actual.positions[0] << "\n";
-          }
-          if (!msg->error.positions.empty()) {
-            oss << "  error[0]: " << msg->error.positions[0] << "\n";
-          }
-  
-          feedback_for_user->status_message = oss.str();
-          // ここでユーザ独自フィードバック情報を加えてもOK
-          // feedback_for_user->some_other_field = ...
-  
-          // 自前のアクションサーバーのフィードバックを送信
-          goal_handle->publish_feedback(feedback_for_user);
-        };
-        
-        // result
-        send_goal_options.result_callback = [this, goal_handle, result](const rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::WrappedResult & wrapped_result) {
-            if (wrapped_result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-                RCLCPP_INFO(this->get_logger(), "Trajectory executed successfully.");
-                result->success = true;
-                result->message = "Trajectory executed successfully.";
-                goal_handle->succeed(result);
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "Trajectory execution failed.");
-                result->success = false;
-                result->message = "Trajectory execution failed.";
-                goal_handle->abort(result);
-            }
-        };
-
         trajectory_client_->async_send_goal(trajectory_goal, send_goal_options);
+
+        // ここで独自の誤差チェックループを作成し、一定周期で現在姿勢との差を確認
+        rclcpp::Rate rate(10);  // 10Hz のチェック
+        bool reached = false;
+        while (rclcpp::ok() && !reached)
+        {
+            // 現在のジョイント状態を更新
+            current_joint_values = move_group_interface_.getCurrentJointValues();
+    
+            double max_error = 0.0;
+            for (size_t i = 0; i < goal_joint_values.size(); ++i) {
+                double err = std::fabs(goal_joint_values[i] - current_joint_values[i]);
+                if (err > max_error) {
+                    max_error = err;
+                }
+            }
+    
+            // ログ出力やフィードバックで知らせる
+            std::ostringstream oss;
+            oss << "Max joint error: " << max_error;
+            feedback->status_message = oss.str();
+            goal_handle->publish_feedback(feedback);
+
+            // しきい値の定義（全ジョイント共通で例示）
+            const double POSITION_TOLERANCE = 0.01;  // 0.01 rad 以下ならOKとする
+    
+            // 条件を満たしていればループ終了
+            if (max_error <= POSITION_TOLERANCE) {
+                reached = true;
+            } else {
+                rate.sleep();
+            }
+        }
+
+        // 条件を満たしたので成功を通知
+        RCLCPP_INFO(this->get_logger(), "Target pose reached.");
+        result->success = true;
+        result->message = "Target pose reached successfully.";
+        goal_handle->succeed(result);
     }
 };
 
