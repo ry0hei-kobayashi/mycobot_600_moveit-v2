@@ -98,11 +98,12 @@ private:
           return;
         }
       
-        // 逆運動学で求められたジョイント角度を取得
-        std::vector<double> joint_values;
+        // 逆運動学で求められた目標姿勢のジョイント角度を取得
+        std::vector<double> goal_joint_values;
         const auto & traj_points = plan.trajectory_.joint_trajectory.points;
         if (!traj_points.empty()) {
-            joint_values = traj_points.back().positions;
+            // ここでは最終点だけ取り出す
+            goal_joint_values = traj_points.back().positions;
         } else {
             RCLCPP_ERROR(this->get_logger(), "Trajectory has no points!");
             result->success = false;
@@ -110,15 +111,21 @@ private:
             goal_handle->abort(result);
             return;
         }
+
+        // 現在の関節角度 (MoveIt の状態から取得)
+        std::vector<double> current_joint_values = move_group_interface_.getCurrentJointValues();
       
         // ログ出力
-        std::ostringstream joint_str;
-        for (size_t i = 0; i < joint_values.size(); ++i) {
-          RCLCPP_INFO(this->get_logger(), "Joint %ld: %.3f rad", i + 1, joint_values[i]);
-          joint_str << "Joint " << (i + 1) << ": " << joint_values[i] << " rad\n";
+        for (size_t i = 0; i < goal_joint_values.size(); ++i) {
+          RCLCPP_INFO(this->get_logger(), "goal Joint %ld: %.3f rad", i + 1, goal_joint_values[i]);
         }
 
-        // ここにmycobotを動かすため、FollowJointTrajectoryアクションを使って、joint_trajectory_controllerに目標姿勢を送信するプログラムを作成
+        // ログ出力
+        for (size_t i = 0; i < current_joint_values.size(); ++i) {
+            RCLCPP_INFO(this->get_logger(), "current Joint %ld: %.3f rad", i + 1, current_joint_values[i]);
+            }
+
+        
         // サーバが立ち上がるまで待つ（サーバーが既に立ち上がっていたら待たないが、立ち上がっていなかったら最大3秒待つ）
         if (!trajectory_client_->wait_for_action_server(3s)) {
             RCLCPP_ERROR(this->get_logger(), "FollowJointTrajectory action server not available");
@@ -128,19 +135,24 @@ private:
             return;
         }
 
-        // 送信する JointTrajectory メッセージを構築
+        // FollowJointTrajectoryアクションを使って、joint_trajectory_controllerに目標姿勢を送信する
+        // trajectory生成
         trajectory_msgs::msg::JointTrajectory trajectory;
         trajectory.joint_names = move_group_interface_.getJointNames();
 
-        for (const auto& name : trajectory.joint_names) {
-            RCLCPP_INFO(this->get_logger(), "Sending to joint: %s", name.c_str());
-        }        
+        // ポイント0: 現在姿勢
+        trajectory_msgs::msg::JointTrajectoryPoint start_pt;
+        start_pt.positions = current_joint_values;
+        start_pt.time_from_start = rclcpp::Duration::from_seconds(0.0);  // 0秒
 
-        trajectory_msgs::msg::JointTrajectoryPoint point;
-        point.positions = joint_values;  // IK で取得した角度
-        point.time_from_start = rclcpp::Duration::from_seconds(0.5);  // 2秒かけて動く
+        // ポイント1: 目標姿勢
+        trajectory_msgs::msg::JointTrajectoryPoint goal_pt;
+        goal_pt.positions = goal_joint_values;
+        goal_pt.time_from_start = rclcpp::Duration::from_seconds(0.005);
 
-        trajectory.points.push_back(point);
+        // 複数ポイントを登録
+        trajectory.points.push_back(start_pt);
+        trajectory.points.push_back(goal_pt);
 
         // Goal メッセージ作成
         control_msgs::action::FollowJointTrajectory::Goal trajectory_goal;
@@ -148,6 +160,34 @@ private:
 
         // 非同期で送信
         auto send_goal_options = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SendGoalOptions();
+        
+        // feedback
+        send_goal_options.feedback_callback =
+        [this, goal_handle](typename rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::SharedPtr,
+                            const std::shared_ptr<const control_msgs::action::FollowJointTrajectory::Feedback> msg)
+        {
+          // msg->desired, msg->actual, msg->error などが格納されている
+          auto feedback_for_user = std::make_shared<MoveEndEffector::Feedback>();
+  
+          // 例として、actual.positions を文字列にまとめる
+          std::ostringstream oss;
+          oss << "Feedback from controller:\n";
+          if (!msg->actual.positions.empty()) {
+            oss << "  actual[0]: " << msg->actual.positions[0] << "\n";
+          }
+          if (!msg->error.positions.empty()) {
+            oss << "  error[0]: " << msg->error.positions[0] << "\n";
+          }
+  
+          feedback_for_user->status_message = oss.str();
+          // ここでユーザ独自フィードバック情報を加えてもOK
+          // feedback_for_user->some_other_field = ...
+  
+          // 自前のアクションサーバーのフィードバックを送信
+          goal_handle->publish_feedback(feedback_for_user);
+        };
+        
+        // result
         send_goal_options.result_callback = [this, goal_handle, result](const rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::WrappedResult & wrapped_result) {
             if (wrapped_result.code == rclcpp_action::ResultCode::SUCCEEDED) {
                 RCLCPP_INFO(this->get_logger(), "Trajectory executed successfully.");
