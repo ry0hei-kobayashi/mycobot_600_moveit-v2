@@ -138,7 +138,7 @@ private:
 
         trajectory_msgs::msg::JointTrajectoryPoint point;
         point.positions = joint_values;  // IK で取得した角度
-        point.time_from_start = rclcpp::Duration::from_seconds(1.0);  // 2秒かけて動く
+        point.time_from_start = rclcpp::Duration::from_seconds(0.5);  // 2秒かけて動く
 
         trajectory.points.push_back(point);
 
@@ -163,12 +163,6 @@ private:
         };
 
         trajectory_client_->async_send_goal(trajectory_goal, send_goal_options);
-      
-        // 成功レスポンスを返す
-        result->success = true;
-        result->message = "--------------\n";
-      
-        RCLCPP_INFO(this->get_logger(), "------------------");
     }
 };
 

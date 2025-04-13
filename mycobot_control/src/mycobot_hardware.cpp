@@ -173,7 +173,7 @@ CallbackReturn RobotSystem::on_init(const hardware_interface::HardwareInfo &info
 
   //TODO
   // Set initial pose (in radians)
-  std::vector<double> init_pose = {0.0, -1.57, 0.0, 0.0, -1.57, 0.0}; 
+  std::vector<double> init_pose = {0.0, -1.57, 0.0, -1.57, -1.57, -0.9}; 
   joint_position_ = init_pose;
   joint_position_command_ = init_pose;
   //
@@ -253,6 +253,13 @@ return_type RobotSystem::read(const rclcpp::Time &, const rclcpp::Duration &)
     joint_velocities_[i] = 0.0;
   }
 
+  // --- ログ出力を追加 ---
+  RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "=== joint_position_ (from read) ===");
+  for (size_t i = 0; i < joint_position_.size(); ++i)
+  {
+    RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "Joint %zu: %.3f rad", i, joint_position_[i]);
+  }
+
 
   return return_type::OK;
 }
@@ -282,12 +289,21 @@ return_type RobotSystem::write(const rclcpp::Time &, const rclcpp::Duration &)
     return return_type::ERROR;
   }
 
-  // ログ
+  // ログ ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
+  RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "Response from robot: %s", response.c_str());
+
   RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "=== joint_position_command_ ===");
   for (size_t i = 0; i < joint_position_command_.size(); ++i)
   {
     RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "Joint %zu: %.3f rad", i, joint_position_command_[i]);
   }
+
+  std::string check_response;
+  // sendCommand(sockfd, "state_check()\n", check_response);
+  sendCommand(sockfd, "check_running()\n", check_response);
+  RCLCPP_INFO(rclcpp::get_logger("hardware_interface"), "status response: %s", check_response.c_str());
+
+  // ログ終わり　ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
 
   rclcpp::Rate rate(0.1);
 

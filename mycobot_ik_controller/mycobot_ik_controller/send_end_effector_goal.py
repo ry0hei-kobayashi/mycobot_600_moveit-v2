@@ -17,9 +17,9 @@ class EndEffectorGoalSender(Node):
 
         # 目標Poseを設定（ここを任意に変更してOK）
         pose = Pose()
-        pose.position.x = 0.6
-        pose.position.y = 0.1
-        pose.position.z = 0.1
+        pose.position.x = 0.3
+        pose.position.y = 0.0
+        pose.position.z = 0.6
         # 例：前方
         pose.orientation.x = 0.0
         pose.orientation.y = 0.0
