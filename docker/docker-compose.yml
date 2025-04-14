@@ -17,6 +17,8 @@ services:
      - ../mycobot_ik_controller:/colcon_ws/src/mycobot_ik_controller
      - ../mycobot_ik_controller_cpp:/colcon_ws/src/mycobot_ik_controller_cpp
      - ../orbbec_description:/colcon_ws/src/orbbec_description
+     - ../f100_gripper_pkg:/colcon_ws/src/f100_gripper_pkg
+     - ../f100_gripper_interfaces:/colcon_ws/src/f100_gripper_interfaces
     #  - ../config:/colcon_ws/src/mycobot_600_moveit/config
     #  - ../launch:/colcon_ws/src/mycobot_600_moveit/launch
     #  - ../urdf:/colcon_ws/src/mycobot_600_moveit/urdf
@@ -25,6 +27,8 @@ services:
     #  - ../package.xml:/colcon_ws/src/mycobot_600_moveit/package.xml
     #  - ../setup.py:/colcon_ws/src/mycobot_600_moveit/setup.py
     #  - ../.setup_assistant:/colcon_ws/src/mycobot_600_moveit/.setup_assistant
+    devices:
+     - /dev/ttyACM0:/dev/ttyACM0
     environment:
       DISPLAY: $DISPLAY
       XDG_RUNTIME_DIR: $XDG_RUNTIME_DIR

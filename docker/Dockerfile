@@ -20,6 +20,8 @@ RUN sed -i 's@archive.ubuntu.com@ftp.jaist.ac.jp/pub/Linux@g' /etc/apt/sources.l
 RUN apt-get -y update
 RUN apt-get -y install git ssh python3-pip wget net-tools vim tmux xsel xclip curl make build-essential lsb-release libgl1-mesa-dev python3-wheel python3-pip python-is-python3
 
+RUN pip install pyserial
+
 #-----------------------------
 # Install humble pkg
 #-----------------------------
