@@ -151,4 +151,78 @@
     <disable_collisions link1="link4" link2="link5" reason="Adjacent"/>
     <disable_collisions link1="link4" link2="link6" reason="Always"/>
     <disable_collisions link1="link5" link2="link6" reason="Adjacent"/>
+
+    <!-- Disable Collisions between gripper_base and camera related links -->
+    <disable_collisions link1="gripper_base" link2="camera_link" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_bottom_screw_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_infra_1_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_infra_1_optical_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_infra2_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_infra2_optical_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_color_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_color_optical_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_depth_frame" reason="User"/>
+    <disable_collisions link1="gripper_base" link2="camera_depth_optical_frame" reason="User"/>
+
+    <!-- Disable Collisions between base and camera related links -->
+    <disable_collisions link1="base" link2="camera_link" reason="User"/>
+    <disable_collisions link1="base" link2="camera_bottom_screw_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_infra_1_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_infra_1_optical_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_infra2_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_infra2_optical_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_color_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_color_optical_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_depth_frame" reason="User"/>
+    <disable_collisions link1="base" link2="camera_depth_optical_frame" reason="User"/>
+
+    <!-- Disable Collisions among internal camera links -->
+    <disable_collisions link1="camera_link" link2="camera_bottom_screw_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_infra_1_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_infra_1_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_infra2_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_infra2_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_color_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_color_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_depth_frame" reason="User"/>
+    <disable_collisions link1="camera_link" link2="camera_depth_optical_frame" reason="User"/>
+
+      <!-- Optical frames 同士の衝突を無視 -->
+    <disable_collisions link1="camera_infra_1_optical_frame" link2="camera_infra2_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_infra_1_optical_frame" link2="camera_color_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_infra_1_optical_frame" link2="camera_depth_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="camera_color_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="camera_depth_optical_frame" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="camera_depth_optical_frame" reason="User"/>
+
+    <!-- 例: camera_infra2_optical_frame と他のリンク -->
+    <disable_collisions link1="camera_infra2_optical_frame" link2="base" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="link1" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="link2" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="link3" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="link4" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="link5" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="link6" reason="User"/>
+    <disable_collisions link1="camera_infra2_optical_frame" link2="gripper_base" reason="User"/>
+
+    <!-- 例: camera_color_optical_frame と他のリンク -->
+    <disable_collisions link1="camera_color_optical_frame" link2="base" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="link1" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="link2" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="link3" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="link4" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="link5" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="link6" reason="User"/>
+    <disable_collisions link1="camera_color_optical_frame" link2="gripper_base" reason="User"/>
+
+    <!-- 例: camera_depth_optical_frame と他のリンク -->
+    <disable_collisions link1="camera_depth_optical_frame" link2="base" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="link1" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="link2" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="link3" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="link4" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="link5" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="link6" reason="User"/>
+    <disable_collisions link1="camera_depth_optical_frame" link2="gripper_base" reason="User"/>
+
 </robot>

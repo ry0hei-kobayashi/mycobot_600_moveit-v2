@@ -1,3 +1,5 @@
+<!-- xacro /colcon_ws/src/mycobot_description/urdf/hma_cobot_with_eef.xacro > /colcon_ws/src/mycobot_description/urdf/hma_cobot_with_eef.urdf -->
+
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="mycobot_pro_with_gripper">
   
@@ -6,6 +8,8 @@
 
   <!-- Include camera_attachment URDF -->
   <xacro:include filename="$(find mycobot_description)/urdf/f100_gripper/pro_force_gripper.urdf" />
+
+  <!-- <xacro:include filename="$(find orbbec_description)/urdf/test_gemini_336.urdf.xacro"/> -->
   
   <!-- Include camera_attachment URDF -->
   <!-- <xacro:include filename="$(find mycobot_description)/urdf/camera_attachments/camera_attachment.urdf" /> -->

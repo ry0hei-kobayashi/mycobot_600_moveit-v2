@@ -16,6 +16,7 @@ services:
      - ../mycobot_action_interfaces:/colcon_ws/src/mycobot_action_interfaces
      - ../mycobot_ik_controller:/colcon_ws/src/mycobot_ik_controller
      - ../mycobot_ik_controller_cpp:/colcon_ws/src/mycobot_ik_controller_cpp
+     - ../orbbec_description:/colcon_ws/src/orbbec_description
     #  - ../config:/colcon_ws/src/mycobot_600_moveit/config
     #  - ../launch:/colcon_ws/src/mycobot_600_moveit/launch
     #  - ../urdf:/colcon_ws/src/mycobot_600_moveit/urdf
