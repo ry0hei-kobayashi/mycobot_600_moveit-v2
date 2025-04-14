@@ -164,7 +164,7 @@
     <limit effort="1000.0" lower="-3.03" upper="3.0368" velocity="0"/>
     <parent link="link5"/>
     <child link="link6"/>
-    <origin rpy="-1.7 0 0 " xyz="-0.07586 0 0"/>
+    <origin rpy="-1.7 0 0" xyz="-0.07586 0 0"/>
   </joint>
   <joint name="link6_to_gripper_base" type="fixed">
     <parent link="link6"/>
